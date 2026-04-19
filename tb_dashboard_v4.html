@@ -1,0 +1,607 @@
+
+<h2 class="sr-only">TB Screening Dashboard v4 — duration fix and reordered columns</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.upload-zone{border:1.5px dashed var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:2.5rem 2rem;text-align:center;cursor:pointer;transition:background .15s;margin-bottom:1.5rem}
+.upload-zone:hover,.upload-zone.drag{background:var(--color-background-secondary)}
+.dash{display:none}
+.top-bar{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:.75rem 1rem;margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.top-bar label{font-size:12px;color:var(--color-text-secondary);white-space:nowrap}
+.top-bar input[type=date],.top-bar select{font-size:12px;padding:4px 8px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary)}
+.top-bar button{font-size:12px;padding:4px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer}
+.top-bar button:hover{background:var(--color-background-tertiary)}
+.count-badge{font-size:12px;color:var(--color-text-secondary);margin-left:auto}
+.tabs{display:flex;gap:0;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:1.25rem;overflow-x:auto}
+.tab{padding:8px 13px;font-size:12.5px;font-weight:500;color:var(--color-text-secondary);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none}
+.tab.active{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary)}
+.tab:hover{color:var(--color-text-primary)}
+.pane{display:none}.pane.active{display:block}
+.stitle{font-size:11.5px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.06em;margin:1.25rem 0 .6rem}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:1rem}
+.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.75rem .9rem}
+.metric-label{font-size:11px;color:var(--color-text-secondary);margin-bottom:3px}
+.metric-val{font-size:19px;font-weight:500;color:var(--color-text-primary)}
+.metric-sub{font-size:10.5px;color:var(--color-text-secondary);margin-top:1px}
+.metric.blue .metric-val{color:var(--color-text-info)}
+.metric.green .metric-val{color:var(--color-text-success)}
+.metric.warn .metric-val{color:var(--color-text-warning)}
+.metric.danger .metric-val{color:var(--color-text-danger)}
+.tbl-wrap{overflow-x:auto;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:1rem}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;font-weight:500;color:var(--color-text-secondary);font-size:11px;padding:7px 9px;border-bottom:0.5px solid var(--color-border-tertiary);white-space:nowrap;background:var(--color-background-secondary);cursor:pointer;user-select:none}
+.tbl th:hover{color:var(--color-text-primary)}
+.tbl td{padding:5px 9px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary);white-space:nowrap}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl tbody tr:hover td{background:var(--color-background-secondary)}
+.badge{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:999px;font-weight:500}
+.b-ok{background:var(--color-background-success);color:var(--color-text-success)}
+.b-err{background:var(--color-background-danger);color:var(--color-text-danger)}
+.b-warn{background:var(--color-background-warning);color:var(--color-text-warning)}
+.b-info{background:var(--color-background-info);color:var(--color-text-info)}
+.b-gray{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.err-pill{display:inline-block;font-size:10px;padding:1px 5px;border-radius:999px;background:var(--color-background-danger);color:var(--color-text-danger);margin:1px 2px}
+.prog{background:var(--color-background-secondary);border-radius:999px;height:6px;overflow:hidden}
+.prog-f{height:100%;border-radius:999px}
+.search-row{display:flex;gap:7px;margin-bottom:.8rem;flex-wrap:wrap;align-items:center}
+.search-row input,.search-row select{font-size:12px;padding:5px 8px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary)}
+.reset-btn{font-size:12px;color:var(--color-text-secondary);background:none;border:none;cursor:pointer;text-decoration:underline;margin-top:.75rem;display:block}
+.dot-ok{color:var(--color-text-success)}
+.col-note{font-size:11px;color:var(--color-text-secondary);background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:6px 10px;margin-bottom:.75rem}
+</style>
+
+<div id="uploadArea" class="upload-zone" onclick="document.getElementById('csvIn').click()">
+  <div style="font-size:26px;margin-bottom:.5rem">📊</div>
+  <div style="font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:.2rem">Upload TB Screening CSV</div>
+  <div style="font-size:12px;color:var(--color-text-secondary)">Click or drag & drop your downloaded CSV</div>
+  <input type="file" id="csvIn" accept=".csv" style="display:none">
+</div>
+
+<div id="dash" class="dash">
+  <div class="top-bar">
+    <label>Screening date</label>
+    <input type="date" id="d1"> <span style="font-size:12px;color:var(--color-text-secondary)">to</span> <input type="date" id="d2">
+    <label style="margin-left:6px">District</label>
+    <select id="fDist"><option value="">All</option></select>
+    <label>CF</label>
+    <select id="fCF"><option value="">All</option></select>
+    <button onclick="applyFilters()">Apply</button>
+    <button onclick="resetFilters()">Reset</button>
+    <span class="count-badge" id="filterCount"></span>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('overview')">Overview</button>
+    <button class="tab" onclick="showTab('datewise')">Date-wise</button>
+    <button class="tab" onclick="showTab('cf')">CFs</button>
+    <button class="tab" onclick="showTab('district')">District</button>
+    <button class="tab" onclick="showTab('garden')">Tea Gardens</button>
+    <button class="tab" onclick="showTab('validation')">Validation</button>
+  </div>
+  <div id="overview" class="pane active"></div>
+  <div id="datewise" class="pane"></div>
+  <div id="cf" class="pane"></div>
+  <div id="district" class="pane"></div>
+  <div id="garden" class="pane"></div>
+  <div id="validation" class="pane"></div>
+  <button class="reset-btn" onclick="resetApp()">Upload a new file</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+const uploadArea=document.getElementById('uploadArea'),csvIn=document.getElementById('csvIn'),dash=document.getElementById('dash');
+let ALL_ROWS=[],FILTERED=[];
+
+uploadArea.addEventListener('dragover',e=>{e.preventDefault();uploadArea.classList.add('drag')});
+uploadArea.addEventListener('dragleave',()=>uploadArea.classList.remove('drag'));
+uploadArea.addEventListener('drop',e=>{e.preventDefault();uploadArea.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)load(f)});
+csvIn.addEventListener('change',e=>{if(e.target.files[0])load(e.target.files[0])});
+
+function load(file){
+  Papa.parse(file,{
+    header:false, skipEmptyLines:true,
+    complete:r=>{
+      // Parse with raw header row so we can handle duplicate column names ourselves
+      const rawHeaders=r.data[0];
+      const dataRows=r.data.slice(1);
+
+      // Find exact column indices by position, not by name
+      // This is the only safe way when headers like "Duration" appear twice
+      const hIdx={};
+      rawHeaders.forEach((h,i)=>{
+        const key=h.trim();
+        if(hIdx[key]===undefined){
+          hIdx[key]=i;
+        } else if(hIdx[key+'_2']===undefined){
+          hIdx[key+'_2']=i;
+        } else {
+          hIdx[key+'_3']=i;
+        }
+      });
+
+      // Map rows to objects using our safe indices
+      // Duration (first occurrence) = Cough Duration
+      // Duration_2 (second occurrence) = Fever Duration
+      const COUGH_DUR_IDX=hIdx['Duration'];
+      const FEVER_DUR_IDX=hIdx['Duration_2'];
+
+      const objects=dataRows.map(row=>{
+        const obj={};
+        rawHeaders.forEach((h,i)=>{obj['__col_'+i]=row[i]||'';});
+        // Build named fields using first-seen index
+        rawHeaders.forEach((h,i)=>{
+          const key=h.trim();
+          if(obj[key]===undefined) obj[key]=row[i]||'';
+        });
+        // Explicitly set the two duration fields
+        obj['_coughDur']=row[COUGH_DUR_IDX]||'';
+        obj['_feverDur']=row[FEVER_DUR_IDX]||'';
+        return obj;
+      });
+
+      init(objects);
+    }
+  });
+}
+
+function tv(row,col){return(row[col]||'').toString().trim();}
+function tn(str){const x=parseFloat(str);return isNaN(x)?null:x;}
+
+// ── CORRECTED VALIDATION ──────────────────────────────────────────────────────
+// Column layout in raw CSV:
+//   Cough | Duration(cough) | Fever | Duration(fever) | ...
+// PapaParse header:false gives us full control — we store:
+//   row._coughDur = first Duration column
+//   row._feverDur = second Duration column
+function validate(row){
+  const age=tn(tv(row,'Age-Year'));
+  const gender=tv(row,'Gender');
+  const diabetes=tv(row,'Diabetes History');
+  const cough=tv(row,'Cough');
+  const coughDur=tn(row['_coughDur']);
+  const fever=tv(row,'Fever');
+  const feverDur=tn(row['_feverDur']);
+  const wl=tv(row,'Weight Loss');
+  const ns=tv(row,'Night Sweats');
+  const rp=tv(row,'Reduced Playfulness');
+  const gland=tv(row,'Swelling or Gland');
+  const errs=[];
+
+  if(gender!=='Male'&&gender!=='Female') errs.push('Gender');
+  if(diabetes==='') errs.push('Diabetes');
+  if(cough==='') errs.push('Cough');
+  if(cough==='Yes'&&(coughDur===null||coughDur>180)) errs.push('Cough Duration');
+  if(fever==='') errs.push('Fever');
+  if(fever==='Yes'&&(feverDur===null||feverDur>180)) errs.push('Fever Duration');
+  if(wl==='') errs.push('Weight Loss');
+  if(age!==null){
+    if(age>=15&&ns!=='Yes'&&ns!=='No') errs.push('Night Sweats');
+    if(age<15&&ns!=='') errs.push('Night Sweats');
+  }
+  if(age!==null&&age>=15&&rp==='Yes') errs.push('Playfulness');
+  if(gland==='') errs.push('Swelling');
+  return errs;
+}
+
+function init(rows){
+  rows.forEach(r=>{
+    r._dt=null;
+    const raw=tv(r,'Screening Date & Time');
+    if(raw){const d=new Date(raw);if(!isNaN(d))r._dt=d;}
+    r._dateStr=r._dt?r._dt.toISOString().slice(0,10):'';
+    r._errs=validate(r);
+  });
+  ALL_ROWS=rows; FILTERED=rows;
+
+  const districts=[...new Set(rows.map(r=>tv(r,'District')).filter(Boolean))].sort();
+  const cfs=[...new Set(rows.map(r=>tv(r,'Name of FA')).filter(Boolean))].sort();
+  const fd=document.getElementById('fDist'),fc=document.getElementById('fCF');
+  districts.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;fd.appendChild(o);});
+  cfs.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;fc.appendChild(o);});
+
+  const dates=rows.filter(r=>r._dt).map(r=>r._dt).sort((a,b)=>a-b);
+  if(dates.length){
+    document.getElementById('d1').value=dates[0].toISOString().slice(0,10);
+    document.getElementById('d2').value=dates[dates.length-1].toISOString().slice(0,10);
+  }
+  uploadArea.style.display='none';
+  dash.style.display='block';
+  applyFilters();
+}
+
+function applyFilters(){
+  const d1=document.getElementById('d1').value,d2=document.getElementById('d2').value;
+  const dist=document.getElementById('fDist').value,cf=document.getElementById('fCF').value;
+  FILTERED=ALL_ROWS.filter(r=>{
+    if(d1&&r._dateStr&&r._dateStr<d1)return false;
+    if(d2&&r._dateStr&&r._dateStr>d2)return false;
+    if(dist&&tv(r,'District')!==dist)return false;
+    if(cf&&tv(r,'Name of FA')!==cf)return false;
+    return true;
+  });
+  document.getElementById('filterCount').textContent=FILTERED.length.toLocaleString()+' records in view';
+  renderAll();
+}
+
+function resetFilters(){
+  const dates=ALL_ROWS.filter(r=>r._dt).map(r=>r._dt).sort((a,b)=>a-b);
+  if(dates.length){document.getElementById('d1').value=dates[0].toISOString().slice(0,10);document.getElementById('d2').value=dates[dates.length-1].toISOString().slice(0,10);}
+  document.getElementById('fDist').value='';document.getElementById('fCF').value='';
+  applyFilters();
+}
+
+function renderAll(){buildOverview();buildDatewise();buildCF();buildDistrict();buildGarden();buildValidation();}
+function showTab(id){
+  document.querySelectorAll('.tab').forEach((t,i)=>{const ts=['overview','datewise','cf','district','garden','validation'];t.classList.toggle('active',ts[i]===id)});
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active',p.id===id));
+}
+function pct(n,d){return d>0?((n/d)*100).toFixed(1)+'%':'0%';}
+function cnt(arr,col,val){return arr.filter(r=>tv(r,col)===val).length;}
+function fmtTime(dt){if(!dt)return'—';return dt.toTimeString().slice(0,5);}
+function fmtDur(m){if(!m||m<0)return'—';const h=Math.floor(m/60),mn=Math.round(m%60);return h>0?`${h}h ${mn}m`:`${mn}m`;}
+function metric(lbl,val,sub,cls=''){return`<div class="metric ${cls}"><div class="metric-label">${lbl}</div><div class="metric-val">${val}</div>${sub?`<div class="metric-sub">${sub}</div>`:''}</div>`;}
+function sc(n,cls='b-info'){return n>0?`<span class="badge ${cls}">${n}</span>`:`<span style="color:var(--color-text-secondary)">0</span>`;}
+
+function buildOverview(){
+  const rows=FILTERED,total=rows.length;
+  const pres=cnt(rows,'Presumptive','Yes'),diag=cnt(rows,'TB Diagnosed','Yes'),tx=cnt(rows,'TB Treatment Started','Yes');
+  const male=cnt(rows,'Gender','Male'),female=cnt(rows,'Gender','Female');
+  const cadDone=cnt(rows,'CAD X-Ray Done','Yes'),xrayDone=cnt(rows,'X-Ray Done','Yes'),gxpDone=cnt(rows,'GXP Sputum Done','Yes');
+  const mtbPos=rows.filter(r=>tv(r,'Result.4'||'').toLowerCase().includes('mtb detected,')||tv(r,'Result').toLowerCase().includes('mtb detected,')).length;
+  const errRows=rows.filter(r=>r._errs.length>0).length;
+  document.getElementById('overview').innerHTML=`
+    <div class="stitle">Programme summary</div>
+    <div class="metric-grid">
+      ${metric('Total screened',total.toLocaleString(),'')}
+      ${metric('Presumptive',pres.toLocaleString(),pct(pres,total)+' yield','warn')}
+      ${metric('CAD X-ray done',cadDone,'')}
+      ${metric('X-ray done',xrayDone,'')}
+      ${metric('GXP done',gxpDone,mtbPos+' MTB+')}
+      ${metric('TB diagnosed',diag,pct(diag,pres)+' of presumptive','blue')}
+      ${metric('On treatment',tx,pct(tx,diag)+' of diagnosed','green')}
+      ${metric('Male',male.toLocaleString(),pct(male,total))}
+      ${metric('Female',female.toLocaleString(),pct(female,total))}
+      ${metric('Validation errors',errRows,pct(errRows,total),'danger')}
+    </div>
+    <div class="stitle">Cascade</div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Stage</th><th>Count</th><th>Rate</th><th style="min-width:140px">Bar</th></tr></thead><tbody>
+      ${[['Screened',total,total,'#378ADD'],['Presumptive',pres,total,'#BA7517'],['CAD X-ray done',cadDone,pres,'#7F77DD'],['X-ray done',xrayDone,pres,'#534AB7'],['GXP done',gxpDone,pres,'#1D9E75'],['Diagnosed',diag,pres,'#D85A30'],['On Treatment',tx,diag,'#1D9E75']]
+        .map(([l,n,d,c])=>`<tr><td>${l}</td><td><strong>${n.toLocaleString()}</strong></td><td>${pct(n,d)}</td><td><div class="prog"><div class="prog-f" style="width:${pct(n,d)};background:${c}"></div></div></td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function buildDatewise(){
+  const rows=FILTERED,byDate={};
+  rows.forEach(r=>{
+    const dk=r._dateStr||'Unknown';
+    if(!byDate[dk])byDate[dk]={n:0,pres:0,cad:0,xray:0,gxp:0,diag:0,tx:0,errs:0,cfs:new Set(),gardens:new Set()};
+    const d=byDate[dk];d.n++;
+    if(tv(r,'Presumptive')==='Yes')d.pres++;
+    if(tv(r,'CAD X-Ray Done')==='Yes')d.cad++;
+    if(tv(r,'X-Ray Done')==='Yes')d.xray++;
+    if(tv(r,'GXP Sputum Done')==='Yes')d.gxp++;
+    if(tv(r,'TB Diagnosed')==='Yes')d.diag++;
+    if(tv(r,'TB Treatment Started')==='Yes')d.tx++;
+    if(r._errs.length>0)d.errs++;
+    d.cfs.add(tv(r,'Name of FA'));d.gardens.add(tv(r,'Facility'));
+  });
+  const dates=Object.keys(byDate).filter(k=>k!=='Unknown').sort();
+  document.getElementById('datewise').innerHTML=`
+    <div class="stitle">Daily log (${dates.length} active days)</div>
+    <div class="tbl-wrap"><table class="tbl" id="dateTable">
+      <thead><tr>
+        <th onclick="sortTbl('dateTable',0)">Date</th>
+        <th onclick="sortTbl('dateTable',1,true)">Screened</th>
+        <th onclick="sortTbl('dateTable',2,true)">Presumptive</th>
+        <th>Yield</th>
+        <th onclick="sortTbl('dateTable',4,true)">CAD X-ray</th>
+        <th onclick="sortTbl('dateTable',5,true)">X-ray</th>
+        <th onclick="sortTbl('dateTable',6,true)">GXP</th>
+        <th onclick="sortTbl('dateTable',7,true)">Diagnosed</th>
+        <th onclick="sortTbl('dateTable',8,true)">Treated</th>
+        <th onclick="sortTbl('dateTable',9,true)">Active CFs</th>
+        <th onclick="sortTbl('dateTable',10,true)">Gardens</th>
+        <th onclick="sortTbl('dateTable',11,true)">Errors</th>
+      </tr></thead>
+      <tbody>${dates.map(dk=>{const d=byDate[dk];return`<tr>
+        <td><strong>${dk}</strong></td><td>${d.n}</td>
+        <td>${sc(d.pres,'b-warn')}</td>
+        <td style="color:var(--color-text-warning)">${pct(d.pres,d.n)}</td>
+        <td>${d.cad>0?sc(d.cad,'b-gray'):'—'}</td>
+        <td>${d.xray>0?sc(d.xray,'b-gray'):'—'}</td>
+        <td>${d.gxp>0?sc(d.gxp,'b-gray'):'—'}</td>
+        <td>${sc(d.diag,'b-info')}</td>
+        <td>${sc(d.tx,'b-ok')}</td>
+        <td>${d.cfs.size}</td><td>${d.gardens.size}</td>
+        <td>${d.errs>0?sc(d.errs,'b-err'):'<span class="dot-ok">✓</span>'}</td>
+      </tr>`}).join('')}</tbody>
+    </table></div>`;
+}
+
+function buildCF(){
+  const rows=FILTERED,cfs={};
+  rows.forEach(r=>{
+    const cf=tv(r,'Name of FA')||'Unknown';
+    if(!cfs[cf])cfs[cf]={name:cf,rows:[],days:{},district:tv(r,'District')};
+    cfs[cf].rows.push(r);
+    if(r._dt){const dk=r._dateStr;if(!cfs[cf].days[dk])cfs[cf].days[dk]={min:r._dt,max:r._dt,count:0,gardens:new Set()};const dy=cfs[cf].days[dk];dy.count++;if(r._dt<dy.min)dy.min=r._dt;if(r._dt>dy.max)dy.max=r._dt;dy.gardens.add(tv(r,'Facility'));}
+  });
+  window._cfData=cfs;
+  const cfArr=Object.values(cfs).sort((a,b)=>b.rows.length-a.rows.length);
+  const tableRows=cfArr.map(cf=>{
+    const r=cf.rows,total=r.length,pres=cnt(r,'Presumptive','Yes'),diag=cnt(r,'TB Diagnosed','Yes');
+    const cad=cnt(r,'CAD X-Ray Done','Yes'),xray=cnt(r,'X-Ray Done','Yes'),gxp=cnt(r,'GXP Sputum Done','Yes');
+    const errs=r.filter(x=>x._errs.length>0).length;
+    const daysArr=Object.values(cf.days),ndays=daysArr.length;
+    const avgStart=ndays?Math.round(daysArr.reduce((s,d)=>s+d.min.getHours()*60+d.min.getMinutes(),0)/ndays):0;
+    const avgEnd=ndays?Math.round(daysArr.reduce((s,d)=>s+d.max.getHours()*60+d.max.getMinutes(),0)/ndays):0;
+    const avgDur=ndays?daysArr.reduce((s,d)=>s+(d.max-d.min)/60000,0)/ndays:0;
+    const sh=Math.floor(avgStart/60),sm=avgStart%60,eh=Math.floor(avgEnd/60),em=avgEnd%60;
+    return{name:cf.name,district:cf.district,total,pres,diag,cad,xray,gxp,errs,ndays,
+      avgStart:`${String(sh).padStart(2,'0')}:${String(sm).padStart(2,'0')}`,
+      avgEnd:`${String(eh).padStart(2,'0')}:${String(em).padStart(2,'0')}`,avgDur};
+  });
+  document.getElementById('cf').innerHTML=`
+    <div class="stitle">All CFs (${cfArr.length})</div>
+    <div class="search-row"><input type="text" id="cfSrch" placeholder="Search CF name..." oninput="filterCF()" style="flex:1"></div>
+    <div class="tbl-wrap"><table class="tbl" id="cfTable">
+      <thead><tr>
+        <th onclick="sortTbl('cfTable',0)">CF name</th>
+        <th onclick="sortTbl('cfTable',1)">District</th>
+        <th onclick="sortTbl('cfTable',2,true)">Days</th>
+        <th onclick="sortTbl('cfTable',3,true)">Screened</th>
+        <th onclick="sortTbl('cfTable',4,true)">Avg/day</th>
+        <th onclick="sortTbl('cfTable',5,true)">Presumptive</th>
+        <th onclick="sortTbl('cfTable',6,true)">CAD X-ray</th>
+        <th onclick="sortTbl('cfTable',7,true)">X-ray</th>
+        <th onclick="sortTbl('cfTable',8,true)">GXP</th>
+        <th onclick="sortTbl('cfTable',9,true)">Diagnosed</th>
+        <th>Avg start</th><th>Avg end</th><th>Avg session</th>
+        <th onclick="sortTbl('cfTable',13,true)">Errors</th>
+        <th>Error %</th>
+      </tr></thead>
+      <tbody id="cfTbody">
+        ${tableRows.map(d=>`<tr data-name="${d.name.toLowerCase()}">
+          <td><strong>${d.name}</strong></td>
+          <td style="color:var(--color-text-secondary)">${d.district}</td>
+          <td>${d.ndays}</td><td>${d.total.toLocaleString()}</td>
+          <td>${d.ndays>0?(d.total/d.ndays).toFixed(1):'-'}</td>
+          <td>${sc(d.pres,'b-warn')}</td>
+          <td>${d.cad>0?sc(d.cad,'b-gray'):'—'}</td>
+          <td>${d.xray>0?sc(d.xray,'b-gray'):'—'}</td>
+          <td>${d.gxp>0?sc(d.gxp,'b-gray'):'—'}</td>
+          <td>${sc(d.diag,'b-ok')}</td>
+          <td style="font-variant-numeric:tabular-nums">${d.avgStart}</td>
+          <td style="font-variant-numeric:tabular-nums">${d.avgEnd}</td>
+          <td>${fmtDur(d.avgDur)}</td>
+          <td>${d.errs>0?sc(d.errs,'b-err'):'<span class="dot-ok">✓</span>'}</td>
+          <td style="color:${d.errs>0?'var(--color-text-danger)':'var(--color-text-success)'}">${pct(d.errs,d.total)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>
+    <div class="stitle">Daily log — select a CF</div>
+    <div class="search-row">
+      <select id="cfDailySel" onchange="buildCFDaily()" style="min-width:200px">
+        <option value="">-- Select CF --</option>
+        ${cfArr.map(cf=>`<option value="${cf.name}">${cf.name}</option>`).join('')}
+      </select>
+    </div>
+    <div id="cfDailyLog"></div>`;
+}
+
+window.buildCFDaily=function(){
+  const sel=document.getElementById('cfDailySel').value,log=document.getElementById('cfDailyLog');
+  if(!sel){log.innerHTML='';return;}
+  const cf=window._cfData[sel];if(!cf){log.innerHTML='';return;}
+  const days=Object.entries(cf.days).sort((a,b)=>a[0].localeCompare(b[0]));
+  log.innerHTML=`<div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>Date</th><th>Start</th><th>End</th><th>Duration</th><th>Records</th><th>Tea garden(s)</th></tr></thead>
+    <tbody>${days.map(([dk,d])=>`<tr>
+      <td>${dk}</td><td>${fmtTime(d.min)}</td><td>${fmtTime(d.max)}</td>
+      <td>${fmtDur((d.max-d.min)/60000)}</td><td>${d.count}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;color:var(--color-text-secondary)" title="${[...d.gardens].join(', ')}">${[...d.gardens].join(', ')}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+};
+
+window.filterCF=function(){
+  const q=(document.getElementById('cfSrch').value||'').toLowerCase();
+  document.querySelectorAll('#cfTbody tr').forEach(tr=>{tr.style.display=tr.dataset.name.includes(q)?'':'none';});
+};
+
+function buildDistrict(){
+  const rows=FILTERED,dists={};
+  rows.forEach(r=>{
+    const d=tv(r,'District')||'Unknown';
+    if(!dists[d])dists[d]={n:0,pres:0,cad:0,xray:0,gxp:0,diag:0,tx:0,errs:0,cfs:new Set(),gardens:new Set()};
+    const di=dists[d];di.n++;
+    if(tv(r,'Presumptive')==='Yes')di.pres++;
+    if(tv(r,'CAD X-Ray Done')==='Yes')di.cad++;
+    if(tv(r,'X-Ray Done')==='Yes')di.xray++;
+    if(tv(r,'GXP Sputum Done')==='Yes')di.gxp++;
+    if(tv(r,'TB Diagnosed')==='Yes')di.diag++;
+    if(tv(r,'TB Treatment Started')==='Yes')di.tx++;
+    if(r._errs.length>0)di.errs++;
+    di.cfs.add(tv(r,'Name of FA'));di.gardens.add(tv(r,'Facility'));
+  });
+  document.getElementById('district').innerHTML=`
+    <div class="stitle">District summary</div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>District</th><th>CFs</th><th>Gardens</th><th>Screened</th><th>Presumptive</th><th>Yield</th><th>CAD X-ray</th><th>X-ray</th><th>GXP</th><th>Diagnosed</th><th>Treated</th><th>Errors</th></tr></thead>
+      <tbody>${Object.entries(dists).sort((a,b)=>b[1].n-a[1].n).map(([nm,d])=>`<tr>
+        <td><strong>${nm}</strong></td><td>${d.cfs.size}</td><td>${d.gardens.size}</td>
+        <td>${d.n.toLocaleString()}</td><td>${sc(d.pres,'b-warn')}</td>
+        <td style="color:var(--color-text-warning)">${pct(d.pres,d.n)}</td>
+        <td>${d.cad>0?sc(d.cad,'b-gray'):'—'}</td>
+        <td>${d.xray>0?sc(d.xray,'b-gray'):'—'}</td>
+        <td>${d.gxp>0?sc(d.gxp,'b-gray'):'—'}</td>
+        <td>${sc(d.diag,'b-info')}</td><td>${sc(d.tx,'b-ok')}</td>
+        <td>${d.errs>0?sc(d.errs,'b-err'):'<span class="dot-ok">✓</span>'}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+}
+
+function buildGarden(){
+  const rows=FILTERED,gardens={};
+  rows.forEach(r=>{
+    const g=tv(r,'Facility')||'Unknown';
+    if(!gardens[g])gardens[g]={n:0,pres:0,cad:0,xray:0,gxp:0,diag:0,tx:0,errs:0,district:tv(r,'District'),cfs:new Set()};
+    const gi=gardens[g];gi.n++;
+    if(tv(r,'Presumptive')==='Yes')gi.pres++;
+    if(tv(r,'CAD X-Ray Done')==='Yes')gi.cad++;
+    if(tv(r,'X-Ray Done')==='Yes')gi.xray++;
+    if(tv(r,'GXP Sputum Done')==='Yes')gi.gxp++;
+    if(tv(r,'TB Diagnosed')==='Yes')gi.diag++;
+    if(tv(r,'TB Treatment Started')==='Yes')gi.tx++;
+    if(r._errs.length>0)gi.errs++;
+    gi.cfs.add(tv(r,'Name of FA'));
+  });
+  const garArr=Object.entries(gardens).sort((a,b)=>b[1].n-a[1].n);
+  document.getElementById('garden').innerHTML=`
+    <div class="stitle">Tea gardens (${garArr.length})</div>
+    <div class="search-row">
+      <input type="text" id="garSrch" placeholder="Search garden..." oninput="filterGarden()" style="flex:1">
+      <select id="garDist" onchange="filterGarden()">
+        <option value="">All districts</option>
+        ${[...new Set(rows.map(r=>tv(r,'District')).filter(Boolean))].sort().map(d=>`<option>${d}</option>`).join('')}
+      </select>
+    </div>
+    <div class="tbl-wrap"><table class="tbl" id="gardenTable">
+      <thead><tr>
+        <th onclick="sortTbl('gardenTable',0)">Tea garden</th>
+        <th onclick="sortTbl('gardenTable',1)">District</th>
+        <th onclick="sortTbl('gardenTable',2,true)">CFs</th>
+        <th onclick="sortTbl('gardenTable',3,true)">Screened</th>
+        <th onclick="sortTbl('gardenTable',4,true)">Presumptive</th>
+        <th>Yield</th>
+        <th onclick="sortTbl('gardenTable',6,true)">CAD X-ray</th>
+        <th onclick="sortTbl('gardenTable',7,true)">X-ray</th>
+        <th onclick="sortTbl('gardenTable',8,true)">GXP</th>
+        <th onclick="sortTbl('gardenTable',9,true)">Diagnosed</th>
+        <th onclick="sortTbl('gardenTable',10,true)">Treated</th>
+        <th onclick="sortTbl('gardenTable',11,true)">Errors</th>
+      </tr></thead>
+      <tbody id="garTbody">
+        ${garArr.map(([g,d])=>`<tr data-name="${g.toLowerCase()}" data-dist="${d.district.toLowerCase()}">
+          <td><strong>${g}</strong></td><td style="color:var(--color-text-secondary)">${d.district}</td>
+          <td>${d.cfs.size}</td><td>${d.n}</td>
+          <td>${sc(d.pres,'b-warn')}</td>
+          <td style="color:var(--color-text-warning)">${pct(d.pres,d.n)}</td>
+          <td>${d.cad>0?sc(d.cad,'b-gray'):'—'}</td>
+          <td>${d.xray>0?sc(d.xray,'b-gray'):'—'}</td>
+          <td>${d.gxp>0?sc(d.gxp,'b-gray'):'—'}</td>
+          <td>${sc(d.diag,'b-info')}</td><td>${sc(d.tx,'b-ok')}</td>
+          <td>${d.errs>0?sc(d.errs,'b-err'):'<span class="dot-ok">✓</span>'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
+}
+window.filterGarden=function(){
+  const q=(document.getElementById('garSrch').value||'').toLowerCase(),dist=(document.getElementById('garDist').value||'').toLowerCase();
+  document.querySelectorAll('#garTbody tr').forEach(tr=>{tr.style.display=(tr.dataset.name.includes(q)&&(!dist||tr.dataset.dist===dist))?'':'none';});
+};
+
+function buildValidation(){
+  const rows=FILTERED,errRows=rows.filter(r=>r._errs.length>0),total=rows.length;
+  const fieldCounts={Gender:0,Diabetes:0,Cough:0,'Cough Duration':0,Fever:0,'Fever Duration':0,'Weight Loss':0,'Night Sweats':0,Playfulness:0,Swelling:0};
+  errRows.forEach(r=>r._errs.forEach(e=>{if(e in fieldCounts)fieldCounts[e]++;}));
+  const maxE=Math.max(...Object.values(fieldCounts),1);
+  document.getElementById('validation').innerHTML=`
+    <div class="stitle">Validation summary</div>
+    <div class="col-note">Duration columns are correctly mapped by position: the first "Duration" column in the CSV = Cough Duration; the second "Duration" column = Fever Duration.</div>
+    <div class="metric-grid">
+      ${metric('Total records',total.toLocaleString(),'')}
+      ${metric('With errors',errRows.length.toLocaleString(),pct(errRows.length,total)+' error rate','danger')}
+      ${metric('Clean records',(total-errRows.length).toLocaleString(),pct(total-errRows.length,total)+' clean','green')}
+    </div>
+    <div class="stitle">Error frequency by field</div>
+    <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem;margin-bottom:1rem">
+      ${Object.entries(fieldCounts).sort((a,b)=>b[1]-a[1]).map(([k,n])=>`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+          <div style="min-width:110px;font-size:12px;color:var(--color-text-secondary)">${k}</div>
+          <div class="prog" style="flex:1"><div class="prog-f" style="width:${n>0?Math.round(n/maxE*100):0}%;background:${n>0?'#D85A30':'#1D9E75'}"></div></div>
+          <div style="min-width:36px;text-align:right;font-size:12px;font-weight:500;color:var(--color-text-primary)">${n}</div>
+          <div style="min-width:44px;text-align:right;font-size:11px;color:var(--color-text-secondary)">${pct(n,total)}</div>
+        </div>`).join('')}
+    </div>
+    <div class="stitle">Flagged records</div>
+    <div class="search-row">
+      <input type="text" id="valSrch" placeholder="Search PID, patient, CF..." oninput="filterVal()" style="flex:1">
+      <select id="valField" onchange="filterVal()">
+        <option value="">All error types</option>
+        ${Object.keys(fieldCounts).map(k=>`<option>${k}</option>`).join('')}
+      </select>
+      <select id="valDist" onchange="filterVal()">
+        <option value="">All districts</option>
+        ${[...new Set(rows.map(r=>tv(r,'District')).filter(Boolean))].sort().map(d=>`<option>${d}</option>`).join('')}
+      </select>
+    </div>
+    <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:.5rem">Showing up to 300 flagged records</div>
+    <div class="tbl-wrap"><table class="tbl" id="valTable">
+      <thead><tr>
+        <th onclick="sortTbl('valTable',0)">Date</th>
+        <th>PID</th><th>Patient</th><th>Age</th><th>Gender</th>
+        <th onclick="sortTbl('valTable',5)">CF</th>
+        <th onclick="sortTbl('valTable',6)">District</th>
+        <th>Tea garden</th>
+        <th>Cough</th><th>Cough Dur</th><th>Fever</th><th>Fever Dur</th>
+        <th>Errors flagged</th>
+      </tr></thead>
+      <tbody id="valTbody">
+        ${errRows.slice(0,300).map(r=>`<tr
+          data-q="${(tv(r,'PID')+tv(r,'Patient')+tv(r,'Name of FA')).toLowerCase()}"
+          data-errs="${r._errs.join(',').toLowerCase()}"
+          data-dist="${tv(r,'District').toLowerCase()}">
+          <td>${r._dateStr||'—'}</td>
+          <td style="font-size:10.5px;color:var(--color-text-secondary)">${tv(r,'PID')}</td>
+          <td>${tv(r,'Patient')}</td>
+          <td>${tv(r,'Age-Year')}</td>
+          <td>${tv(r,'Gender')||'<span style="color:var(--color-text-danger)">blank</span>'}</td>
+          <td>${tv(r,'Name of FA')}</td>
+          <td>${tv(r,'District')}</td>
+          <td>${tv(r,'Facility')}</td>
+          <td>${tv(r,'Cough')||'—'}</td>
+          <td>${r['_coughDur']||'—'}</td>
+          <td>${tv(r,'Fever')||'—'}</td>
+          <td>${r['_feverDur']||'—'}</td>
+          <td>${r._errs.map(e=>`<span class="err-pill">${e}</span>`).join('')}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>
+    <div class="stitle">Errors by CF</div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>CF</th><th>District</th><th>Records</th><th>Error records</th><th>Error %</th><th>Top errors</th></tr></thead>
+      <tbody>${(()=>{
+        const cfE={};
+        rows.forEach(r=>{const cf=tv(r,'Name of FA')||'?',dist=tv(r,'District');if(!cfE[cf])cfE[cf]={n:0,e:0,fields:{},dist};cfE[cf].n++;if(r._errs.length>0){cfE[cf].e++;r._errs.forEach(f=>{cfE[cf].fields[f]=(cfE[cf].fields[f]||0)+1;});}});
+        return Object.entries(cfE).sort((a,b)=>b[1].e-a[1].e).map(([name,d])=>{
+          const topF=Object.entries(d.fields).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([f,n])=>`<span class="err-pill">${f}(${n})</span>`).join('');
+          return`<tr><td>${name}</td><td style="color:var(--color-text-secondary)">${d.dist}</td><td>${d.n}</td><td>${d.e>0?sc(d.e,'b-err'):'<span class="dot-ok">✓</span>'}</td><td style="color:${d.e>0?'var(--color-text-danger)':'var(--color-text-success)'}">${pct(d.e,d.n)}</td><td>${topF||'—'}</td></tr>`;
+        }).join('');
+      })()}</tbody>
+    </table></div>`;
+}
+window.filterVal=function(){
+  const q=(document.getElementById('valSrch').value||'').toLowerCase();
+  const field=(document.getElementById('valField').value||'').toLowerCase();
+  const dist=(document.getElementById('valDist').value||'').toLowerCase();
+  document.querySelectorAll('#valTbody tr').forEach(tr=>{
+    tr.style.display=((!q||tr.dataset.q.includes(q))&&(!field||tr.dataset.errs.includes(field))&&(!dist||tr.dataset.dist===dist))?'':'none';
+  });
+};
+window.sortTbl=function(id,col,numeric){
+  const tbody=document.querySelector(`#${id} tbody`);if(!tbody)return;
+  const trs=[...tbody.rows].sort((a,b)=>{
+    const av=(a.cells[col]?.textContent||'').replace(/[^0-9.\-]/g,'');
+    const bv=(b.cells[col]?.textContent||'').replace(/[^0-9.\-]/g,'');
+    return numeric?(parseFloat(bv)||0)-(parseFloat(av)||0):av.localeCompare(bv);
+  });
+  trs.forEach(r=>tbody.appendChild(r));
+};
+function resetApp(){
+  ALL_ROWS=[];FILTERED=[];
+  document.getElementById('fDist').innerHTML='<option value="">All</option>';
+  document.getElementById('fCF').innerHTML='<option value="">All</option>';
+  ['overview','datewise','cf','district','garden','validation'].forEach(id=>{document.getElementById(id).innerHTML='';});
+  dash.style.display='none';uploadArea.style.display='block';csvIn.value='';
+  showTab('overview');
+}
+</script>
